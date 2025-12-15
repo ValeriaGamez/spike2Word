@@ -14,6 +14,7 @@ class SpeechDataset(Dataset):
         self.neural_time_bins = []
         self.phone_seq_lens = []
         self.days = []
+        self.transcriptions = []
         for day in range(self.n_days):
             for trial in range(len(data[day]["sentenceDat"])):
                 self.neural_feats.append(data[day]["sentenceDat"][trial])
@@ -21,6 +22,11 @@ class SpeechDataset(Dataset):
                 self.neural_time_bins.append(data[day]["sentenceDat"][trial].shape[0])
                 self.phone_seq_lens.append(data[day]["phoneLens"][trial])
                 self.days.append(day)
+                # Store the transcription string for each trial
+                if "transcriptions" in data[day]:
+                    self.transcriptions.append(data[day]["transcriptions"][trial])
+                else:
+                    self.transcriptions.append("")
 
     def __len__(self):
         return self.n_trials
@@ -37,4 +43,5 @@ class SpeechDataset(Dataset):
             torch.tensor(self.neural_time_bins[idx], dtype=torch.int32),
             torch.tensor(self.phone_seq_lens[idx], dtype=torch.int32),
             torch.tensor(self.days[idx], dtype=torch.int64),
+            self.transcriptions[idx],
         )

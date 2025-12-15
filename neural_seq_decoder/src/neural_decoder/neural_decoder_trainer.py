@@ -105,7 +105,12 @@ def trainModel(args):
     for batch in range(args["nBatch"]):
         model.train()
 
-        X, y, X_len, y_len, dayIdx = next(iter(trainLoader))
+        batch_data = next(iter(trainLoader))
+        if len(batch_data) == 6:
+            X, y, X_len, y_len, dayIdx, transcriptions = batch_data
+        else:
+            X, y, X_len, y_len, dayIdx = batch_data
+            transcriptions = [""] * X.shape[0]
         X, y, X_len, y_len, dayIdx = (
             X.to(device),
             y.to(device),
@@ -150,7 +155,14 @@ def trainModel(args):
                 allLoss = []
                 total_edit_distance = 0
                 total_seq_length = 0
-                for X, y, X_len, y_len, testDayIdx in testLoader:
+                example_printed = 0
+                for batch_data in testLoader:
+                    # Unpack the batch, now with transcription
+                    if len(batch_data) == 6:
+                        X, y, X_len, y_len, testDayIdx, transcriptions = batch_data
+                    else:
+                        X, y, X_len, y_len, testDayIdx = batch_data
+                        transcriptions = [""] * X.shape[0]
                     X, y, X_len, y_len, testDayIdx = (
                         X.to(device),
                         y.to(device),
@@ -184,6 +196,15 @@ def trainModel(args):
                         trueSeq = np.array(
                             y[iterIdx][0 : y_len[iterIdx]].cpu().detach()
                         )
+
+                        # Print up to 5 examples with transcription, ground truth, and prediction
+                        if example_printed < 5:
+                            print(f"Example {example_printed+1}:")
+                            print("Target sentence:", transcriptions[iterIdx])
+                            print("Ground truth:", trueSeq.tolist())
+                            print("Prediction  :", decodedSeq.tolist())
+                            print()
+                            example_printed += 1
 
                         matcher = SequenceMatcher(
                             a=trueSeq.tolist(), b=decodedSeq.tolist()
